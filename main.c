@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include "mnist.h"
 
 void shuffle(double *array, size_t n)
 {
@@ -39,19 +40,17 @@ double initWeight()
 }
 
 
-#define INPUTS 2
+#define INPUTS 784
 #define HIDDEN_LAYERS 2
 #define HIDDEN_NODES 4
-#define OUTPUTS 1
+#define OUTPUTS 10
 
-double trainingSet[4][3] = {
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {1.0f, 0.0f, 0.0f},
-        {1.0f, 1.0f, 1.0f}
-};
+#define SIZE 785 // 28*28 (+1 for label)
+#define NUM_TRAIN 60000
 
-const int trainingSetSize = 4;
+double trainingSet[NUM_TRAIN][SIZE];
+
+int trainingSetSize = NUM_TRAIN;
 
 double input[INPUTS];
 
@@ -178,7 +177,17 @@ void trainNetwork(double learningRate, int epochs)
             backPropagate(trainingSet[j][INPUTS]);
             updateWeights(learningRate);
 
-            printf("Input: %f %f, Output: %f Target: %f Error: %f \n", input[0], input[1], output[0], trainingSet[j][INPUTS], outputError[0]);
+            printf("Epoch: %d, Training: %d, Error: %f, max: ", i, j, outputError[0]);
+            double max = 0;
+            int maxIndex = 0;
+            for (int k = 0; k < 10; ++k) {
+                if (output[k] > max) {
+                    max = output[k];
+                    maxIndex = k;
+                }
+            }
+            printf("%d, prob: %f \n", maxIndex, max);
+
         }
     }
 
@@ -203,9 +212,23 @@ void testNetwork()
     }
 }
 
+void readData() {
+    load_mnist();
+    for(int i = 0; i < NUM_TRAIN; i++)
+    {
+        for(int j = 0; j < INPUTS; j++)
+        {
+            trainingSet[i][j] = (double)train_image[i][j] / 255.0;
+        }
+        trainingSet[i][INPUTS] = (double)train_label[i] / 255.0;
+    }
+}
+
+
 int main () {
+    readData();
     initNetwork();
-    trainNetwork(0.1, 100000);
+    trainNetwork(0.1, 10000);
 
     for (int i = 0; i < 5; i++) {
         printf("\n\n\n");
@@ -213,22 +236,6 @@ int main () {
 
     testNetwork();
     printf("\n");
-
-    do {
-        int a, b;
-        printf("Enter two numbers: ");
-        scanf("%d %d", &a, &b);
-
-        if (a != 0 && a != 1 || b != 0 && b != 1) {
-            printf("Invalid input\n");
-            break;
-        }
-
-        input[0] = a;
-        input[1] = b;
-        feedForward();
-        printf("Output: %f\n", output[0]);
-    } while (1);
 
     return 0;
 }
